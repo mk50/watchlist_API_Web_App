@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'user_app',
     'rest_framework_simplejwt',
+    'django_filters',
+
+
  
 ]
 
@@ -53,8 +56,18 @@ REST_FRAMEWORK = {
   
     ),
        'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ]
+        # 'rest_framework.permissions.IsAuthenticated',
+    ],
+     'DEFAULT_THROTTLE_RATES': {
+        'anon': '3/day',
+        'user': '10/day',
+        'review-create':'1/day',
+        'review-list':'10/day',
+        'review_details':'2/day',
+     },
+         'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    )
 }
 
 CSRF_COOKIE_NAME = "XSRF-TOKEN"

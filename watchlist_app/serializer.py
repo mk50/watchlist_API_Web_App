@@ -1,3 +1,4 @@
+from numpy import source
 from .models import *
 from rest_framework import serializers
 
@@ -10,7 +11,8 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields='__all__'
 
 class Watchlistserializer(serializers.ModelSerializer):
-    review=ReviewSerializer(many=True,read_only=True )
+    # review=ReviewSerializer(many=True,read_only=True )
+    stream=serializers.CharField(source='stream.name')
     class Meta:
         model=Watchlist
         fields='__all__'

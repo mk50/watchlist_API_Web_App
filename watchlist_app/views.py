@@ -1,5 +1,3 @@
-from platform import platform
-
 from django.forms import ValidationError
 from watchlist_app.models import Review, Watchlist,StreamPlatFormn
 from watchlist_app.serializer import ReviewSerializer, StreamPlatFormSerializer,Watchlistserializer
@@ -9,15 +7,40 @@ from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework import generics,mixins
+from django.db.models import Avg
 from rest_framework import viewsets
 from .permissions import ReviewOrReadOnly
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import UserRateThrottle,AnonRateThrottle,ScopedRateThrottle
+from watchlist_app.throttling import ReviewCreateThrottling,ReviewListThrottling
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+from watchlist_app.paginations import WatchlistPagination,WatchlistCursorPagination
+
+
+
+
+class ReviewUser(generics.ListAPIView):
+    
+    
+    serializer_class=ReviewSerializer
+    
+    def get_queryset(self):
+        #   username = self.kwargs['username']
+        #   return Review.objects.filter(user_review__username=username)
+        username = self.request.query_params.get('username')
+        return Review.objects.filter(user_review__username=username)
+
 
 
 class ReviewDetails(mixins.RetrieveModelMixin,mixins.UpdateModelMixin,mixins.DestroyModelMixin,generics.GenericAPIView):
     queryset=Review.objects.all()
     serializer_class=ReviewSerializer
     permission_classes=[ReviewOrReadOnly,IsAuthenticated]
+    # throttle_classes=[UserRateThrottle,AnonRateThrottle]
+    # throttle_classes=[ScopedRateThrottle]
+    # throttle_scope='review_details'
+
 
     def get(self,request,*args,**kwargs):
         return self.retrieve(request,*args,**kwargs)
@@ -30,9 +53,15 @@ class ReviewList(generics.ListAPIView):
     
     queryset=Review.objects.all()
     serializer_class=ReviewSerializer
+    # throttle_classes=[ReviewListThrottling]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['user_review__username', 'watchlist__title']
+
 
 class ReviewCreate(generics.CreateAPIView):
     serializer_class=ReviewSerializer
+    throttle_classes=[ReviewCreateThrottling]
+
 
     def perform_create(self, serializer):
         pk=self.kwargs.get('pk')
@@ -117,7 +146,17 @@ class SteamPlatformVS(viewsets.ModelViewSet):
 #         platform.delete()
 #         return Response(status=status.HTTP_204_NO_CONTENT)    
 
+class watchlistSearch(generics.ListAPIView):
+    queryset=Watchlist.objects.all()
+    serializer_class=Watchlistserializer
+    pagination_class=WatchlistPagination
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_fields = ['title', 'stream__name']
+    filter_backends = [filters.SearchFilter]
+    search_fields  = ['title', 'stream__name']
+
 class WatchlistAv(APIView):
+    
     def get(self,request):
         try:
             movie=Watchlist.objects.all()
@@ -132,6 +171,7 @@ class WatchlistAv(APIView):
             return Response(serializer.data,status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors,status=status.HTTP_404_NOT_FOUND)
+    
 
 
 class WatchDeatilsAv(APIView):
